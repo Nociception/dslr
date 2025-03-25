@@ -34,6 +34,7 @@ def ft_max(data):
     return (max)
 
 def ft_percentile(data, p):
+    assert p >= 0 and p <= 1, "The percentile must be between 0 and 1"
     arr = [x for x in data if not np.isnan(x)]
     arr.sort()
     return (arr[int(len(arr) * p)])
