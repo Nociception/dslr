@@ -1,53 +1,64 @@
+#!.venv/bin/python
+
 import sys
+
 import numpy as np
 import polars as pl
 
-def ft_count(data):
-    return (len([x for x in data if not np.isnan(x)]))
 
-def ft_nan_count(data):
-    return (len([x for x in data if np.isnan(x)]))
+def ft_sum(data: np.ndarray) -> float:
+    total = 0.0
+    for x in data:
+        if not np.isnan(x):
+            total += x
+    return total
 
-def ft_mean(data):
+
+
+def ft_count(data: np.ndarray) -> int:
+    return len([x for x in data if not np.isnan(x)])
+
+def ft_nan_count(data: np.ndarray) -> int:
+    return len([x for x in data if np.isnan(x)])
+
+def ft_mean(data: np.ndarray) -> float:
     assert ft_count(data) > 0, "Can't calculate the mean of an empty list"
-    return (np.sum([x for x in data if not np.isnan(x)]) / ft_count(data))
+    return np.sum([x for x in data if not np.isnan(x)]) / ft_count(data)
 
-def ft_std(data):
+def ft_std(data: np.ndarray) -> float:
     assert ft_count(data) >= 2, "Can't calculate the std of an empty list or a list with only one element"
     mean = ft_mean(data)
-    return (np.sqrt(np.sum([(x - mean) ** 2 for x in data if not np.isnan(x)]) / (ft_count(data) - 1)))
+    return np.sqrt(np.sum([(x - mean) ** 2 for x in data if not np.isnan(x)]) / (ft_count(data) - 1))
 
-def ft_min(data):
+def ft_min(data: np.ndarray) -> int | float:
     arr = [x for x in data if not np.isnan(x)]
     min = arr[0]
     for x in arr:
         if x < min:
             min = x
-    return (min)
+    return min
 
-def ft_max(data):
+def ft_max(data: np.ndarray) -> int | float:
     arr = [x for x in data if not np.isnan(x)]
     max = arr[0]
     for x in arr:
         if x > max:
             max = x
-    return (max)
+    return max
 
-def ft_percentile(data, p):
-    assert p >= 0 and p <= 1, "The percentile must be between 0 and 1"
+def ft_percentile(data: np.ndarray, p: float) -> int | float:
+    assert p >= 0 and p <= 1, "The percentile must be between 0 and 1."
     arr = [x for x in data if not np.isnan(x)]
     arr.sort()
-    return (arr[int(len(arr) * p)])
+    return arr[int(len(arr) * p)]
 
 
-def describe(df):
-    # count ; mean ; std ; min ; 25% ; 50% ; 75% ; max
-
+def describe(df: pl.DataFrame):
     df = df.drop(["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"])
-    functions = ["count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"]
 
+    functions = ["count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"]
     try:
-        assert len(df) > 0, "The data is empty"
+        assert len(df) > 0, "The data is empty."
         output = {}
         for col in df.columns:
             output[col] = {
@@ -75,17 +86,18 @@ def describe(df):
             print(f"{output[col][f]:<12.2f}", end="")
         print()
 
-def main():
-    if len(sys.argv) != 3:
-        print("Error: Wrong number of arguments")
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        print("Usage: ./describe.py dataset_[train/test].csv")
         exit(1)
-    if sys.argv[2][-4] != ".csv":
+    csv_file = sys.argv[1]
+    if not csv_file.endswith(".csv"):
         print("Error: The file is not a csv file")
         exit(1)
-    csv_file = sys.argv[2]
 
-    df_train = pl.read_csv(csv_file)
-    describe(df_train)
+    describe(pl.read_csv(csv_file))
+
 
 if __name__ == "__main__":
     main()
