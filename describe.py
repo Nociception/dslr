@@ -34,8 +34,10 @@ def ft_std(
 ) -> float:
     assert col_count != -1, "ft_std did not receive col_count arg."
     assert col_count is not None, "ft_std did not receive col_mean arg."
-    assert col_count >= 2, "Can't calculate the std of an empty list or a list with only one element."
-    return (ft_sum([(x - col_mean) ** 2 for x in data]) / (col_count))**.5
+    assert col_count >= 2, (
+        "Can't calculate the std of an empty list or a list with only one element."
+    )
+    return (ft_sum([(x - col_mean) ** 2 for x in data]) / (col_count)) ** 0.5
 
 
 def ft_min(data: np.ndarray) -> int | float:
@@ -63,7 +65,9 @@ def ft_percentile(data: np.ndarray, p: float) -> int | float:
     return arr[int(len(arr) * p)]
 
 
-def write_csv(output: dict, functions: list[str], columns: list[str], filename: str) -> None:
+def write_csv(
+    output: dict, functions: list[str], columns: list[str], filename: str
+) -> None:
     with open(filename, "w") as f:
         f.write("," + ",".join(columns) + "\n")
 
@@ -72,23 +76,34 @@ def write_csv(output: dict, functions: list[str], columns: list[str], filename: 
             for col in columns:
                 row.append(f"{output[col][func]:.6f}")
             f.write(",".join(row) + "\n")
-    print(f"\n{filename} created ; browse it with a proper solution if you screen is not wide enough.")
+    print(
+        f"\n{filename} created ; browse it with a proper solution if you screen is not wide enough."
+    )
 
 
 def describe(df: pl.DataFrame):
-    df = df.drop(["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"])
+    df = df.drop(
+        ["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"]
+    )
 
-    functions = ["count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"]
+    functions = [
+        "count",
+        "null_count",
+        "mean",
+        "std",
+        "min",
+        "25%",
+        "50%",
+        "75%",
+        "max",
+    ]
     try:
         assert len(df) > 0, "The data is empty."
         output = {}
         for col in df.columns:
             np_col = df[col].to_numpy()
             col_count = ft_count(np_col)
-            col_mean = ft_arithmetic_mean(
-                np_col,
-                col_count=col_count
-            )
+            col_mean = ft_arithmetic_mean(np_col, col_count=col_count)
             output[col] = {
                 "count": col_count,
                 "null_count": ft_nan_count(np_col),
@@ -117,7 +132,7 @@ def describe(df: pl.DataFrame):
         for col in df.columns:
             print(f"{output[col][f]:<12.2f}", end="")
         print()
-    
+
     write_csv(
         output=output,
         functions=functions,
