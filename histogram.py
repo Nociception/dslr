@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 def get_numeric_courses(df: pl.DataFrame) -> list[str]:
     return [
-        col for col in df.columns
-        if df[col].dtype in (pl.Float64, pl.Int64)
-        and col != "Index"
+        col
+        for col in df.columns
+        if df[col].dtype in (pl.Float64, pl.Int64) and col != "Index"
     ]
 
 
@@ -28,7 +28,9 @@ def get_all_course_values(ctx: pl.SQLContext[pl.LazyFrame], course: str) -> np.n
     )
 
 
-def get_house_course_values(ctx: pl.SQLContext[pl.LazyFrame], course: str, house: str) -> np.ndarray:
+def get_house_course_values(
+    ctx: pl.SQLContext[pl.LazyFrame], course: str, house: str
+) -> np.ndarray:
     return (
         ctx.execute(f"""
             SELECT

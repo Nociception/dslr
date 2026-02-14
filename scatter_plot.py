@@ -10,9 +10,9 @@ import plotly.graph_objects as go
 df = pl.read_csv("datasets/dataset_train.csv")
 
 numeric_cols = [
-    col for col in df.columns
-    if df[col].dtype in (pl.Float64, pl.Int64)
-    and col != "Index"
+    col
+    for col in df.columns
+    if df[col].dtype in (pl.Float64, pl.Int64) and col != "Index"
 ]
 
 pairs = []
@@ -22,13 +22,8 @@ for col1, col2 in itertools.combinations(numeric_cols, 2):
     if corr is not None:
         pairs.append((col1, col2, corr))
 
-houses = (
-    df.select("Hogwarts House")
-    .drop_nulls()
-    .unique()
-    .to_series()
-    .to_list()
-)
+houses = df.select("Hogwarts House").drop_nulls().unique().to_series().to_list()
+
 
 def create_corr_figure() -> go.Figure:
 
@@ -77,12 +72,7 @@ def create_corr_figure() -> go.Figure:
 
 def create_scatter(col1: str, col2: str) -> go.Figure:
 
-    df_clean = (
-        df
-        .select(["Hogwarts House", col1, col2])
-        .drop_nulls()
-        .to_pandas()
-    )
+    df_clean = df.select(["Hogwarts House", col1, col2]).drop_nulls().to_pandas()
 
     fig = go.Figure()
 
@@ -111,30 +101,32 @@ def create_scatter(col1: str, col2: str) -> go.Figure:
 
 app = Dash(__name__)
 
-app.layout = html.Div([
-
-    html.Div([
-        dcc.Graph(
-            id="correlation-map",
-            figure=create_corr_figure(),
-            style={"width": "48%", "display": "inline-block"},
-        ),
-
-        dcc.Graph(
-            id="scatter-plot",
-            style={"width": "48%", "display": "inline-block"},
-        ),
+app.layout = html.Div(
+    [
         html.Div(
-            "Click on a correlation point to display the corresponding scatter plot.",
-            style={
-                "textAlign": "left",
-                "marginTop": "10px",
-                "fontStyle": "italic",
-                "color": "gray",
-            }
-        ),
-    ])
-])
+            [
+                dcc.Graph(
+                    id="correlation-map",
+                    figure=create_corr_figure(),
+                    style={"width": "48%", "display": "inline-block"},
+                ),
+                dcc.Graph(
+                    id="scatter-plot",
+                    style={"width": "48%", "display": "inline-block"},
+                ),
+                html.Div(
+                    "Click on a correlation point to display the corresponding scatter plot.",
+                    style={
+                        "textAlign": "left",
+                        "marginTop": "10px",
+                        "fontStyle": "italic",
+                        "color": "gray",
+                    },
+                ),
+            ]
+        )
+    ]
+)
 
 
 @app.callback(
