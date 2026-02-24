@@ -77,7 +77,7 @@ def write_csv(
                 row.append(f"{output[col][func]:.6f}")
             f.write(",".join(row) + "\n")
     print(
-        f"\n{filename} created ; browse it with a proper solution if you screen is not wide enough."
+        f"\n{filename} created ; browse it with a proper solution if your screen is not wide enough."
     )
 
 

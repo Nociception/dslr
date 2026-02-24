@@ -1,4 +1,4 @@
-.PHONY: describe histogram scatter_plot pair_plot ruff clean help
+.PHONY: describe histogram scatter_plot pair_plot ruff logreg_train logreg_predict clean help
 
 
 PYTHON = uv run python
@@ -18,6 +18,12 @@ pair_plot:
 ruff:
 	$(PYTHON) -m ruff check .
 	$(PYTHON) -m ruff format .
+
+logreg_train:
+	@echo "Usage:\n\t./logreg_train.py datasets/dataset_train.csv"
+
+logreg_predict:
+	@echo "Usage:\n\t./logreg_predict.py datasets/dataset_test.csv"
 
 clean:
 	@if [ -f describe.csv ]; then \
