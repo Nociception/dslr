@@ -75,39 +75,39 @@ def apply_standardization(
     means: npt.NDArray,
     stds: npt.NDArray
 ) -> npt.NDArray:
-    X_std: npt.NDArray = np.zeros_like(X)
 
-    for j in range(X.shape[1]):
-        X_std[:, j] = (X[:, j] - means[j]) / stds[j]
-
-    return X_std
+    return (X - means) / stds
 
 
 def logistic_function(z: npt.NDArray) -> npt.NDArray:
     return 1 / (1 + np.exp(-z))
 
 
-def compute_loss(y, p):
+def compute_loss(
+    y: npt.NDArray[np.float64],
+    p: npt.NDArray[np.float64],
+):
     eps = 1e-15
     p = np.clip(p, eps, 1 - eps)
     return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
 
 
 def train_binary(
-    X: npt.NDArray[np.float64],          # shape (m, n)
-    y_binary: npt.NDArray[np.float64],   # shape (m,)
-    alpha: float = 0.001,
-    epochs: int = 700,
+    X: npt.NDArray[np.float64],  # shape (m, n)
+    y_binary: npt.NDArray[np.float64],  # shape (m, 1)
+    alpha: float = 0.001,  # learning rate
+    epochs: int = 1_000,
 ) -> tuple[npt.NDArray[np.float64], np.float64]:
     """
-    Long docstring here. Fold it by clicking on the little down arrow just beside the
-    number (on VSCode).
-    Will probaby write a PDF instead :p
+    Long docstring here. Fold it by clicking on the little down arrow just between the
+    line number and the triple quote (on VSCode).
+    Will probaby write a PDF/markdown instead :p
 
     Here are some links between the suject's formulas, and the following code,
     which performs the gradient descent.
     Here in the code, all calculation are made with matrices
     (over all the student and subject, at the same time), so no sum needed.
+    Remind well this sentence, as it will be summoned several times during these explanations.
     
     Notations, matches between subject's formulas and code :
     * m:
@@ -115,7 +115,7 @@ def train_binary(
         Here in the code: `m`
     * j (lowercase):
         number of subjects (kept ; thanks to dataviz/analytics enlightenment).
-        Here in the code: `nb_subjects`
+        Here in the code: `nb_subjects`, and `n` in the shape comments
     * θ:
         is the nb_subjects sized vector for the weights.
         Updated during each logistic regression gradient descent loop iteration
@@ -126,15 +126,17 @@ def train_binary(
         Here in the code: `y_binary`
             is then a m sized vector, filled with 0 or 1, according to
             student house membership, depending on the current house's model training.
-    * x (also written x^i, or even x^i_j in the subject):
+    * x (also written x^i, or even (x_j)^i in the subject):
         x^i (in the loss function):
             subjects' marks for the i-th student.
         x (in the h function definition):
             matrix with m lines, j columns.
             All students' marks, on all subjects.
-        x^i_j (in the partial derivative definition):
-            The i-th student's mark, in the j subject.
-        Here in the code: `X` (uppercase)
+        (x_j)^i (in the partial derivative definition):
+            The i-th student's mark, in the j-th subject.
+        Here in the code:
+            `X` (uppercase) is defined and used as a (m, n) shaped matrix,
+            with m lines (number of students), and n columns (number of subjects)
     * ^T (the T exponent):
         Is not a power, but states instead for "transpose"
         (see there: https://en.wikipedia.org/wiki/Transpose).
@@ -150,7 +152,7 @@ def train_binary(
             * Y, a (n, p) shaped matrix ; n lines, p columns
             Thus, X.Y
                 (where . is the matrix multiplication
-                    (which is not commutative: X.Y ≠ Y.X ;
+                    (which is not commutative: X.Y ≠ Y.X ; instead of real multiplication a*b = b*a
                     X.Y can be equal to Y.X under specific circumstances,
                     but equality is not always true (provided that multiplication is possible
                     (see below about multiplication possibility)
@@ -166,13 +168,13 @@ def train_binary(
                 thus X.Y does not make any sense, and cannot be calculated.
             
         More specifically, let's consider:
-            * X, a (j, 1) shaped matrix ; also called a "column matrix" (j lines, 1 column),
+            * X, a (n, 1) shaped matrix ; also called a "column matrix" (n lines, 1 column),
             or a "vector".
-            * Y, a same as X shaped matrix: (j, 1)
+            * Y, a same as X shaped matrix: (n, 1)
             According to how matrix multiplication is possible, X @ Y does not make any sense:
-            1 ≠ j
+            1 ≠ n
             However, transposition allows to multiply !
-            If X is (j, 1) shaped, thus X^T is (1, j) shaped.
+            If X is (n, 1) shaped, thus X^T is (1, n) shaped.
             Thus:
                 X^T . Y is now possible, and gives as a result just a number
                 (or a (1, 1) shaped matrix we could say.)
@@ -181,50 +183,102 @@ def train_binary(
         Here in the code, transposition of a matrix X is symbolized as such:
             `X.T`
     * h_θ:
-        The "score" calculation.
+        Defined in the subject as such:
+            g(θ^T * x)
+            Read carefully the next section about the score calculation.
+        * g, the logistic/sigmoid function is also defined just below in the subject as such:
+            1/(1+e^-z)
+        Here in the code:
+            `prediction`: npt.NDArray[np.float64] = logistic_function(score)
+
+
+    Current function code instructions, related to subject's formulas
+    * score: npt.NDArray[np.float64] = X @ weights + intercept
+        This score calculation is related to θ^T * x inside the g function in the subject.
+        "Where hθ(x) is defined in the following way : hθ(x) = g(θ^T x)
         In the subject, it is given for one student.
         As:
-        * θ is a (j, 1) shaped vector
-        * x (which should be written x_i in fact) is also a (j, 1) shaped vector.
-        Then, getting the dot product of them requires to
-    * z: npt.NDArray[np.float64] = X @ weights + intercept
-        computes θ^T * x, according to the subject's formula stated as such:
-        "Where hθ(x) is defined in the following way : hθ(x) = g(θ^T x)
-        
+        * θ is a (n, 1) shaped vector (the weights for each subject)
+        * x (which should be written x_i in fact) is also a (n, 1) shaped vector.
+        Then, multiply them requires to transpose one them,
+        otherwise, multiplication is not possible.
+        As saw just above, with only two same shaped vectors:
+            no matter which one is transposed, and then the order of multiplication,
+            the result is the same (one number) as long as
+            the number of columns of the first equals the number of lines of the second.
+        Here in the code (important):
+        * As said before:
+            "all calculation are made with matrices"!
+            So here, `X` is a (m, n) shaped matrix (as defined above).
+        * θ remains a (n, 1) vector (as defined above): the `weights`
+        * Thus, there is only one way to multiply them:
+            X @ θ ; Reminder: @ is the symbol to multiply two matrices in the code.
+            (And not θ^T @ X, as it is written in the subject.)
+            No need to transpose, just adapt the order, and it provides the proper result:
+                a (m, 1) shaped vector: one score per student.
+    *   prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m,)
+        Related to z in the subject's formula.
+        Once the logistic function is applied, score is shaped into a number between 0 and 1,
+        as a probability/prediction should be. 
+    *   error: npt.NDArray[np.float64] = prediction - y_binary  # shape (m,)
+        Is related to the last subject's formula: the cost function partial derivative.
+        Still, as "all calculation are made with matrices", no need to care about indices,
+        or sum symbols.
+        These aspects are instead handled with matrices calculations (multiplications).
+        Reminder:
+        * `prediction` is related to h_θ in the subject's formulas
+        * `y_binary` is related to y^i
+    *   grad_weights: npt.NDArray[np.float64] = (X.T @ error) / sample_size  # shape (n,)
+        In the partial derivative subject's formula, a multiplication by (x_j)^i is written.
+        Reminder: this partial derivative formula is given for one subject.
+        Still, as "all calculation are made with matrices", no sum is needed.
+        However, matrices multiplications implies to deal properly to make them possible.
+        Let's study matrices shapes, to explain the order:
+        * `X` is (m, n) shaped
+        * `error` is (m, 1) shaped
+        Thus:
+            The only way to make this matrices multiplication possible is:
+            `X` transposed, (n, m) shaped
+            multiplied by
+            `error` (m, 1) shaped
+            which provides a (n, 1) result:
+                a column matrix, with n lines, and 1 column.
+                One weight gradient per subject.
+        Also, 1/m is out of the sum in the partial derivative formula, is still has to be done,
+        by dividing by `sample_size`.
     
     """
     sample_size: int
     nb_subjects: int
     sample_size, nb_subjects = X.shape
-    weights: npt.NDArray[np.float64] = np.zeros(nb_subjects, dtype=np.float64)  # shape (n, )
+    weights: npt.NDArray[np.float64] = np.zeros(nb_subjects, dtype=np.float64)  # shape (n, 1)
     intercept: np.float64 = np.float64(0.0)
 
-    print(X.shape)
-    print(weights.shape)
-
     for epoch in range(epochs):
-        z: npt.NDArray[np.float64] = weights @ X + intercept  # shape (m,)
-        p: npt.NDArray[np.float64] = logistic_function(z)  # shape (m,)
-        error: npt.NDArray[np.float64] = p - y_binary  # shape (m,)
-        grad_weights: npt.NDArray[np.float64] = (X.T @ error) / sample_size  # shape (n,)
-        grad_intercept: np.float64 = np.float64(np.mean(error))
+        score: npt.NDArray[np.float64] = X @ weights + intercept  # shape (m, 1)
+        prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m, 1)
+        error: npt.NDArray[np.float64] = prediction - y_binary  # shape (m, 1)
+        grad_weights: npt.NDArray[np.float64] = (X.T @ error) / sample_size  # shape (n, 1)
+        grad_intercept: np.float64 = np.float64(np.mean(error))  # real
 
-        weights -= alpha * grad_weights
-        intercept -= alpha * grad_intercept
+        weights -= alpha * grad_weights  # shape (n, 1)
+        intercept -= alpha * grad_intercept  # real
 
-        if epoch % 100 == 0:
-            loss: np.float64 = compute_loss(y_binary, p)
+        if epoch % 200 == 0:
+            loss = compute_loss(y_binary, prediction)
+            formatted = ", ".join(f"{w:.6f}" for w in grad_weights)
             print(
-                f"Epoch {epoch} | Loss {loss:.4f} "
-                f"| error.shape={error.shape} "
-                f"| z.shape={z.shape} "
-                f"| intercept={intercept}"
+                f"Epoch {epoch} | Loss {loss:.4f} | intercept={intercept} | "
+                f"Weights gradient {formatted}"
             )
 
     return weights, intercept
 
 
-def logreg_one_vs_rest(X: npt.NDArray[np.float64], y):
+def logreg_one_vs_rest(
+    X: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64]
+) -> dict[str, tuple[npt.NDArray[np.float64], np.float64]]:
     houses = np.unique(y)
     models: dict = dict()
 
@@ -242,19 +296,18 @@ def logreg_one_vs_rest(X: npt.NDArray[np.float64], y):
     return models
 
 
-def predict_ovr(models, X):
-    scores = []
+def predict_ovr(
+    models: dict[str, tuple[npt.NDArray[np.float64], np.float64]],
+    X: npt.NDArray[np.float64],
+) -> npt.NDArray[np.str_]:
 
-    for house in models:
-        house_subject_weights, intercept = models[house]
-        scores.append(logistic_function(X @ house_subject_weights + intercept))
+    classes: list[str] = list(models.keys())  # k classes ; here: 4
+    weight_matrix = np.vstack([models[c][0] for c in classes])  # shape (k, n)
+    intercept_vector = np.array([models[c][1] for c in classes])  # shape (k, 1)
+    scores = weight_matrix @ X.T + intercept_vector[:, None]  # (k, m)
+    best_indices = np.argmax(scores, axis=0)
 
-    scores = np.array(scores)
-    preds = np.argmax(scores, axis=0)
-
-    classes = list(models.keys())
-
-    return np.array([classes[i] for i in preds])
+    return np.array([classes[i] for i in best_indices])
 
 
 def accuracy(y_true, y_pred):
@@ -267,15 +320,13 @@ def main(train_file_path: str) -> None:
     means, stds = get_all_subjects_means_stds(X_train)
     X_train = apply_standardization(X_train, means, stds)
     X_val = apply_standardization(X_val, means, stds)
-
     models = logreg_one_vs_rest(X_train, y_train)
 
     preds = predict_ovr(models, X_val)
 
     acc = accuracy(y_val, preds)
-    print("Accuracy:", acc)
-
-    # print(accuracy_score(y_val, preds))  # sklearn usage (remind to uncomment the proper import)
+    print(f"Accuracy: {acc}")
+    # print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
 
 
 if __name__ == "__main__":
