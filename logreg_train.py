@@ -11,22 +11,23 @@ import numpy.typing as npt
 from describe import ft_count, ft_arithmetic_mean, ft_std
 
 
-def load_dataset(
-    path: str
-) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
+def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
     df = pl.read_csv(path)
 
     numeric_cols = [
-        c for c in df.columns
-        if df[c].dtype in (pl.Float64, pl.Int64)
-        and c not in ["Index"]
+        c
+        for c in df.columns
+        if df[c].dtype in (pl.Float64, pl.Int64) and c not in ["Index"]
     ]
     print("Rows before drop:", df.height)
 
     numeric_cols = [
-        c for c in numeric_cols
-        if c not in (
-            "Arithmancy", "Care of Magical Creatures",  # homogene histograms, low anova f-scores
+        c
+        for c in numeric_cols
+        if c
+        not in (
+            "Arithmancy",
+            "Care of Magical Creatures",  # homogene histograms, low anova f-scores
             "Defense Against the Dark Arts",  # perfect correlation with Astronomy
         )
     ]
@@ -56,11 +57,9 @@ def train_val_split(
     return X[train_idx], X[val_idx], y[train_idx], y[val_idx]
 
 
-def get_all_subjects_means_stds(
-    X: npt.NDArray
-) -> tuple[npt.NDArray, npt.NDArray]:
-    means:list = []
-    stds:list = []
+def get_all_subjects_means_stds(X: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+    means: list = []
+    stds: list = []
     for j in range(X.shape[1]):
         col = X[:, j]
         col_count = ft_count(col)
@@ -72,9 +71,7 @@ def get_all_subjects_means_stds(
 
 
 def apply_standardization(
-    X: npt.NDArray,
-    means: npt.NDArray,
-    stds: npt.NDArray
+    X: npt.NDArray, means: npt.NDArray, stds: npt.NDArray
 ) -> npt.NDArray:
 
     return (X - means) / stds
@@ -109,7 +106,7 @@ def train_binary(
     Here in the code, all calculation are made with matrices
     (over all the student and subject, at the same time), so no sum needed.
     Remind well this sentence, as it will be summoned several times during these explanations.
-    
+
     Notations, matches between subject's formulas and code :
     * m:
         number of students in the clean train dataset.
@@ -167,7 +164,7 @@ def train_binary(
                     (`n` (same symbol)).
                 If X was (m, n) shaped, Y (p, q) shaped, and n ≠ q,
                 thus X.Y does not make any sense, and cannot be calculated.
-            
+
         More specifically, let's consider:
             * X, a (n, 1) shaped matrix ; also called a "column matrix" (n lines, 1 column),
             or a "vector".
@@ -220,7 +217,7 @@ def train_binary(
     *   prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m,)
         Related to z in the subject's formula.
         Once the logistic function is applied, score is shaped into a number between 0 and 1,
-        as a probability/prediction should be. 
+        as a probability/prediction should be.
     *   error: npt.NDArray[np.float64] = prediction - y_binary  # shape (m,)
         Is related to the last subject's formula: the cost function partial derivative.
         Still, as "all calculation are made with matrices", no need to care about indices,
@@ -247,19 +244,23 @@ def train_binary(
                 One weight gradient per subject.
         Also, 1/m is out of the sum in the partial derivative formula, is still has to be done,
         by dividing by `sample_size`.
-    
+
     """
     sample_size: int
     nb_subjects: int
     sample_size, nb_subjects = X.shape
-    weights: npt.NDArray[np.float64] = np.zeros(nb_subjects, dtype=np.float64)  # shape (n, 1)
+    weights: npt.NDArray[np.float64] = np.zeros(
+        nb_subjects, dtype=np.float64
+    )  # shape (n, 1)
     intercept: np.float64 = np.float64(0.0)
 
     for epoch in range(epochs):
         score: npt.NDArray[np.float64] = X @ weights + intercept  # shape (m, 1)
         prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m, 1)
         error: npt.NDArray[np.float64] = prediction - y_binary  # shape (m, 1)
-        grad_weights: npt.NDArray[np.float64] = (X.T @ error) / sample_size  # shape (n, 1)
+        grad_weights: npt.NDArray[np.float64] = (
+            X.T @ error
+        ) / sample_size  # shape (n, 1)
         grad_intercept: np.float64 = np.float64(np.mean(error))  # real
 
         weights -= alpha * grad_weights  # shape (n, 1)
@@ -277,8 +278,7 @@ def train_binary(
 
 
 def logreg_one_vs_rest(
-    X: npt.NDArray[np.float64],
-    y: npt.NDArray[np.float64]
+    X: npt.NDArray[np.float64], y: npt.NDArray[np.float64]
 ) -> dict[str, tuple[npt.NDArray[np.float64], np.float64]]:
     houses = np.unique(y)
     models: dict = dict()
@@ -307,8 +307,7 @@ def predict_ovr(
 
 
 def accuracy(
-    y_true: npt.NDArray[np.int16],
-    y_pred: npt.NDArray[np.str_]
+    y_true: npt.NDArray[np.int16], y_pred: npt.NDArray[np.str_]
 ) -> np.floating:
     return np.mean(y_true == y_pred)
 

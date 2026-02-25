@@ -107,7 +107,7 @@ def ft_anova_f_scores(
         ss_within = 0.0
 
         for c in classes:
-            class_mask = (y_j == c)
+            class_mask = y_j == c
             X_c = X_j[class_mask]
             n_k = len(X_c)
             if n_k == 0:
@@ -169,7 +169,9 @@ def describe(df: pl.DataFrame):
                 "max": ft_max(np_col),
                 "anova_f_score": ft_anova_f_scores(
                     X=df_dup.select(pl.col(col)).to_numpy(),  # shape (m, 1)
-                    y=df_dup.select(pl.col("Hogwarts House")).to_numpy().flatten(),  # shape (m,)
+                    y=df_dup.select(pl.col("Hogwarts House"))
+                    .to_numpy()
+                    .flatten(),  # shape (m,)
                 )[0],
             }
     except AssertionError as e:

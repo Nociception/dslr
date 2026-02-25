@@ -6,19 +6,23 @@ import json
 from typing import Tuple, Dict, List
 
 import numpy as np
-import numpy.typing as npt
 import polars as pl
 
 from logreg_train import apply_standardization, predict_ovr
 
 
-def load_model(path: str) -> Tuple[Dict[str, Dict[str, list]], np.ndarray, np.ndarray, List[str]]:
+def load_model(
+    path: str,
+) -> Tuple[Dict[str, Dict[str, list]], np.ndarray, np.ndarray, List[str]]:
     with open(path, "r") as f:
         data = json.load(f)
 
     models = {}
     for house, v in data["classes"].items():
-        models[house] = (np.array(v["weights"], dtype=np.float64), float(v["intercept"]))
+        models[house] = (
+            np.array(v["weights"], dtype=np.float64),
+            float(v["intercept"]),
+        )
 
     means = np.array(data["standardization"]["means"], dtype=np.float64)
     stds = np.array(data["standardization"]["stds"], dtype=np.float64)
