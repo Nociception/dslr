@@ -1,4 +1,6 @@
 import math
+
+import seaborn as sns
 import numpy as np
 import polars as pl
 import matplotlib.pyplot as plt
@@ -162,7 +164,27 @@ def histogram_all_courses(df: pl.DataFrame) -> None:
     plt.show()
 
 
+def plot_best_hand_histogram(df: pl.DataFrame) -> None:
+    """
+    Plot Best Hand distribution by house using seaborn.
+    """
+
+    df_clean = df.select(["Hogwarts House", "Best Hand"]).drop_nulls()
+
+    sns.histplot(
+        data=df_clean.to_pandas(),
+        x="Hogwarts House",
+        hue="Best Hand",
+        multiple="fill",      # normalize to proportions
+        shrink=0.8,
+    )
+
+    plt.ylabel("Proportion")
+    plt.title("Best Hand distribution by house")
+    plt.show()
+
+
 if __name__ == "__main__":
     df = pl.read_csv("datasets/dataset_train.csv")
     histogram_all_courses(df)
-    print("Include best hand histogram")
+    plot_best_hand_histogram(df)
