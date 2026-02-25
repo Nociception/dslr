@@ -1,5 +1,6 @@
 #!.venv/bin/python
 
+import json
 import sys
 
 import polars as pl
@@ -12,7 +13,7 @@ from describe import ft_count, ft_arithmetic_mean, ft_std
 
 def load_dataset(
     path: str
-) -> tuple[npt.NDArray, npt.NDArray]:
+) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
     df = pl.read_csv(path)
 
     numeric_cols = [
@@ -25,7 +26,7 @@ def load_dataset(
     numeric_cols = [
         c for c in numeric_cols
         if c not in (
-            "Arithmancy", "Care of Magical Creatures",  # homogene histograms
+            "Arithmancy", "Care of Magical Creatures",  # homogene histograms, low anova f-scores
             "Defense Against the Dark Arts",  # perfect correlation with Astronomy
         )
     ]
@@ -36,13 +37,13 @@ def load_dataset(
 
     X = df.select(numeric_cols).to_numpy()
     y = df["Hogwarts House"].to_numpy()
-    return X, y
+    return X, y, numeric_cols
 
 
 def train_val_split(
     X: npt.NDArray,
     y: npt.NDArray,
-    ratio: float = 0.85,
+    ratio: float = 0.8,
 ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
     n: int = len(X)
     indices = np.arange(n)
@@ -95,8 +96,8 @@ def compute_loss(
 def train_binary(
     X: npt.NDArray[np.float64],  # shape (m, n)
     y_binary: npt.NDArray[np.float64],  # shape (m, 1)
-    alpha: float = 0.001,  # learning rate
-    epochs: int = 1_000,
+    alpha: float = 0.005,  # learning rate
+    epochs: int = 2_000,
 ) -> tuple[npt.NDArray[np.float64], np.float64]:
     """
     Long docstring here. Fold it by clicking on the little down arrow just between the
@@ -288,44 +289,74 @@ def logreg_one_vs_rest(
         house_subjects_weights, intercept = train_binary(X, y_binary)
         models[house] = (house_subjects_weights, intercept)
 
-    #TODO
-    print("########### MUST GENERATE WEIGHTS FILE FOR PREDICT #################")
-    print(models)
-    print("########### MUST GENERATE WEIGHTS FILE FOR PREDICT #################")
-
     return models
 
 
 def predict_ovr(
     models: dict[str, tuple[npt.NDArray[np.float64], np.float64]],
-    X: npt.NDArray[np.float64],
+    X: npt.NDArray[np.float64],  # shape (m, n)
 ) -> npt.NDArray[np.str_]:
 
     classes: list[str] = list(models.keys())  # k classes ; here: 4
     weight_matrix = np.vstack([models[c][0] for c in classes])  # shape (k, n)
     intercept_vector = np.array([models[c][1] for c in classes])  # shape (k, 1)
-    scores = weight_matrix @ X.T + intercept_vector[:, None]  # (k, m)
-    best_indices = np.argmax(scores, axis=0)
+    scores = X @ weight_matrix.T + intercept_vector.T  # (k, m)
+    best_indices = np.argmax(scores, axis=1)
 
     return np.array([classes[i] for i in best_indices])
 
 
-def accuracy(y_true, y_pred):
+def accuracy(
+    y_true: npt.NDArray[np.int16],
+    y_pred: npt.NDArray[np.str_]
+) -> np.floating:
     return np.mean(y_true == y_pred)
 
 
+def save_model(
+    models: dict[str, tuple[npt.NDArray[np.float64], np.float64]],
+    means: npt.NDArray[np.float64],
+    stds: npt.NDArray[np.float64],
+    feature_names: list[str],
+    output_path: str = "model.json",
+) -> None:
+
+    model_data: dict = {
+        "metadata": {
+            "model": "logistic_regression_ovr",
+            "n_features": len(feature_names),
+        },
+        "features": feature_names,
+        "standardization": {
+            "means": means.tolist(),
+            "stds": stds.tolist(),
+        },
+        "classes": {},
+    }
+
+    for house, (weights, intercept) in models.items():
+        model_data["classes"][house] = {
+            "weights": weights.tolist(),
+            "intercept": float(intercept),
+        }
+
+    with open(output_path, "w") as f:
+        json.dump(model_data, f, indent=4)
+
+    print(f"\nModel saved to {output_path}")
+
+
 def main(train_file_path: str) -> None:
-    X, y = load_dataset(train_file_path)
+    X, y, feature_names = load_dataset(train_file_path)
     X_train, X_val, y_train, y_val = train_val_split(X, y)
     means, stds = get_all_subjects_means_stds(X_train)
     X_train = apply_standardization(X_train, means, stds)
     X_val = apply_standardization(X_val, means, stds)
     models = logreg_one_vs_rest(X_train, y_train)
-
+    save_model(models, means, stds, feature_names)
     preds = predict_ovr(models, X_val)
-
     acc = accuracy(y_val, preds)
-    print(f"Accuracy: {acc}")
+    print(f"\nAccuracy: {acc}")
     # print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
 
 

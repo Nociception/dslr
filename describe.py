@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 import polars as pl
+import numpy.typing as npt
 
 
 def ft_sum(arr: list[int | float]) -> float:
@@ -81,7 +82,54 @@ def write_csv(
     )
 
 
+def ft_anova_f_scores(
+    X: npt.NDArray[np.float64],  # shape (m, n)
+    y: npt.NDArray[np.str_],  # shape (m,)
+) -> npt.NDArray[np.float64]:
+    n = X.shape[1]
+    f_scores = np.zeros(n, dtype=np.float64)
+
+    for j in range(n):
+        mask_valid = ~np.isnan(X[:, j])
+        X_j = X[mask_valid, j]
+        y_j = y[mask_valid]
+
+        m_j = len(X_j)
+        classes = np.unique(y_j)
+        K = len(classes)
+
+        if m_j <= K:
+            f_scores[j] = np.nan
+            continue
+
+        global_mean = np.mean(X_j)
+        ss_between = 0.0
+        ss_within = 0.0
+
+        for c in classes:
+            class_mask = (y_j == c)
+            X_c = X_j[class_mask]
+            n_k = len(X_c)
+            if n_k == 0:
+                continue
+
+            mean_k = np.mean(X_c)
+            ss_between += n_k * (mean_k - global_mean) ** 2
+            ss_within += np.sum((X_c - mean_k) ** 2)
+
+        ms_between = ss_between / (K - 1)
+        ms_within = ss_within / (m_j - K)
+
+        if ms_within == 0:
+            f_scores[j] = 0.0
+        else:
+            f_scores[j] = ms_between / ms_within
+
+    return f_scores
+
+
 def describe(df: pl.DataFrame):
+    df_dup = df
     df = df.drop(
         ["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"]
     )
@@ -96,6 +144,7 @@ def describe(df: pl.DataFrame):
         "50%",
         "75%",
         "max",
+        "anova_f_score",
     ]
     try:
         assert len(df) > 0, "The data is empty."
@@ -118,6 +167,10 @@ def describe(df: pl.DataFrame):
                 "50%": ft_percentile(np_col, 0.50),
                 "75%": ft_percentile(np_col, 0.75),
                 "max": ft_max(np_col),
+                "anova_f_score": ft_anova_f_scores(
+                    X=df_dup.select(pl.col(col)).to_numpy(),  # shape (m, 1)
+                    y=df_dup.select(pl.col("Hogwarts House")).to_numpy().flatten(),  # shape (m,)
+                )[0],
             }
     except AssertionError as e:
         print("Error: ", e)
@@ -143,7 +196,7 @@ def describe(df: pl.DataFrame):
 
 def main() -> None:
     if len(sys.argv) != 2:
-        print("Usage: ./describe.py dataset_[train/test].csv")
+        print("Usage: ./describe.py datasets/dataset_[train/test].csv")
         exit(1)
     csv_file = sys.argv[1]
     if not csv_file.endswith(".csv"):

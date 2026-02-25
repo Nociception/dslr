@@ -3,3 +3,5 @@ describe.csv
 .~lock.*.csv*
 
 pairplot.png
+
+model.json
