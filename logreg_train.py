@@ -50,16 +50,16 @@ def train_test_split(
     train_indices = []
     val_indices = []
 
-    classes = np.unique(y)
+    houses = np.unique(y)
 
-    for cls in classes:
-        cls_indices = np.where(y == cls)[0]
-        np.random.shuffle(cls_indices)
+    for h in houses:
+        h_indices = np.where(y == h)[0]
+        np.random.shuffle(h_indices)
 
-        split = int(len(cls_indices) * ratio)
+        split = int(len(h_indices) * ratio)
 
-        train_indices.extend(cls_indices[:split])
-        val_indices.extend(cls_indices[split:])
+        train_indices.extend(h_indices[:split])
+        val_indices.extend(h_indices[split:])
 
     train_indices = np.array(train_indices)
     val_indices = np.array(val_indices)
