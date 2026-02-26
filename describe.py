@@ -130,6 +130,9 @@ def ft_anova_f_scores(
 
 def describe(df: pl.DataFrame):
     df_dup = df
+    if ("Hogwarts House" not in df.columns):
+        print("Error: We need the houses for the file... Use dataset of training...")
+        exit(1)
     df = df.drop(
         ["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"]
     )
@@ -198,7 +201,12 @@ def describe(df: pl.DataFrame):
 
 def main() -> None:
     if len(sys.argv) != 2:
-        print("Usage: ./describe.py datasets/dataset_[train/test].csv")
+        print("Need a dataset of training to analyze...")
+        print("Usage: ./describe.py datasets/dataset_train.csv")
+        exit(1)
+    if "test" in sys.argv[1]:
+        print("We need a dataset of training to analyze...")
+        print("Usage: ./describe.py datasets/dataset_train.csv")
         exit(1)
     csv_file = sys.argv[1]
     if not csv_file.endswith(".csv"):

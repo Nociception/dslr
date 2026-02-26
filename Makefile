@@ -4,7 +4,7 @@
 PYTHON = uv run python
 
 describe:
-	@echo "Usage:\n\t./describe.py datasets/dataset_[train/test].csv"
+	@echo "Usage:\n\t./describe.py datasets/dataset_train.csv"
 
 histogram:
 	$(PYTHON) histogram.py
