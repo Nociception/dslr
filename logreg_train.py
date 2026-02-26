@@ -6,7 +6,7 @@ import sys
 import polars as pl
 import numpy as np
 import numpy.typing as npt
-# from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score
 
 from describe import ft_count, ft_arithmetic_mean, ft_std
 
@@ -29,9 +29,10 @@ def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
             "Arithmancy",
             "Care of Magical Creatures",  # homogene histograms, low anova f-scores
             "Defense Against the Dark Arts",  # perfect correlation with Astronomy
+            "Astronomy",
         )
     ]
-    df = df.drop_nulls(subset=numeric_cols + ["Hogwarts House"])
+    df = df.fill_null(strategy="mean")
 
     print("Rows after drop:", df.height)
     print("Features kept:", numeric_cols)
@@ -374,7 +375,7 @@ def main(train_file_path: str) -> None:
     preds = predict_ovr(models, X_val)
     acc = accuracy(y_val, preds)
     print(f"\nAccuracy: {acc}")
-    # print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
+    print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
 
 
 if __name__ == "__main__":

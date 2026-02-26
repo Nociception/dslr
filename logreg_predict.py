@@ -34,6 +34,9 @@ def load_model(
 def load_test_dataset(path: str, feature_names: List[str]) -> np.ndarray:
     df = pl.read_csv(path)
     df = df.select(feature_names)
+
+    df = df.fill_null(strategy="mean")
+
     return df.to_numpy()
 
 
