@@ -41,20 +41,38 @@ def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
     return X, y, numeric_cols
 
 
-def train_val_split(
+def train_test_split(
     X: npt.NDArray,
     y: npt.NDArray,
     ratio: float = 0.8,
 ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
-    n: int = len(X)
-    indices = np.arange(n)
-    np.random.shuffle(indices)
 
-    split = int(n * ratio)
-    train_idx = indices[:split]
-    val_idx = indices[split:]
+    train_indices = []
+    val_indices = []
 
-    return X[train_idx], X[val_idx], y[train_idx], y[val_idx]
+    classes = np.unique(y)
+
+    for cls in classes:
+        cls_indices = np.where(y == cls)[0]
+        np.random.shuffle(cls_indices)
+
+        split = int(len(cls_indices) * ratio)
+
+        train_indices.extend(cls_indices[:split])
+        val_indices.extend(cls_indices[split:])
+
+    train_indices = np.array(train_indices)
+    val_indices = np.array(val_indices)
+
+    np.random.shuffle(train_indices)
+    np.random.shuffle(val_indices)
+
+    return (
+        X[train_indices],
+        X[val_indices],
+        y[train_indices],
+        y[val_indices],
+    )
 
 
 def get_all_subjects_means_stds(X: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
@@ -94,7 +112,7 @@ def train_binary(
     X: npt.NDArray[np.float64],  # shape (m, n)
     y_binary: npt.NDArray[np.float64],  # shape (m, 1)
     alpha: float = 0.005,  # learning rate
-    epochs: int = 2_000,
+    epochs: int = 100_000,
 ) -> tuple[npt.NDArray[np.float64], np.float64]:
     """
     Long docstring here. Fold it by clicking on the little down arrow just between the
@@ -266,7 +284,7 @@ def train_binary(
         weights -= alpha * grad_weights  # shape (n, 1)
         intercept -= alpha * grad_intercept  # real
 
-        if epoch % 200 == 0:
+        if epoch % 10_000 == 0:
             loss = compute_loss(y_binary, prediction)
             formatted = ", ".join(f"{w:.6f}" for w in grad_weights)
             print(
@@ -347,7 +365,7 @@ def save_model(
 
 def main(train_file_path: str) -> None:
     X, y, feature_names = load_dataset(train_file_path)
-    X_train, X_val, y_train, y_val = train_val_split(X, y)
+    X_train, X_val, y_train, y_val = train_test_split(X, y)
     means, stds = get_all_subjects_means_stds(X_train)
     X_train = apply_standardization(X_train, means, stds)
     X_val = apply_standardization(X_val, means, stds)
