@@ -161,7 +161,9 @@ def histogram_all_courses(df: pl.DataFrame) -> None:
         ncol=1,
     )
 
-    plt.show()
+    # plt.show()
+    plt.savefig("histogram.png")
+    plt.close()
 
 
 def plot_best_hand_histogram(df: pl.DataFrame) -> None:
@@ -181,7 +183,9 @@ def plot_best_hand_histogram(df: pl.DataFrame) -> None:
 
     plt.ylabel("Proportion")
     plt.title("Best Hand distribution by house")
-    plt.show()
+    # plt.show()
+    plt.savefig("best_hand.png")
+    plt.close()
 
 
 if __name__ == "__main__":
