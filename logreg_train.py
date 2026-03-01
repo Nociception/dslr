@@ -1,4 +1,4 @@
-#!.venv/bin/python
+#!/usr/bin/env python3
 
 import json
 import sys
@@ -6,7 +6,7 @@ import sys
 import polars as pl
 import numpy as np
 import numpy.typing as npt
-from sklearn.metrics import accuracy_score
+# from sklearn.metrics import accuracy_score
 
 from describe import ft_count, ft_arithmetic_mean, ft_std
 
@@ -29,10 +29,10 @@ def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
             "Arithmancy",
             "Care of Magical Creatures",  # homogene histograms, low anova f-scores
             "Defense Against the Dark Arts",  # perfect correlation with Astronomy
-            "Astronomy",
         )
     ]
-    df = df.fill_null(strategy="mean")
+    # df = df.fill_null(strategy="mean")
+    df = df.drop_nulls(subset=numeric_cols)
 
     print("Rows after drop:", df.height)
     print("Features kept:", numeric_cols)
@@ -42,7 +42,7 @@ def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
     return X, y, numeric_cols
 
 
-def train_test_split(
+def train_test_stratified_split(
     X: npt.NDArray,
     y: npt.NDArray,
     ratio: float = 0.8,
@@ -113,7 +113,7 @@ def train_binary(
     X: npt.NDArray[np.float64],  # shape (m, n)
     y_binary: npt.NDArray[np.float64],  # shape (m, 1)
     alpha: float = 0.005,  # learning rate
-    epochs: int = 100_000,
+    epochs: int = 10_000,
 ) -> tuple[npt.NDArray[np.float64], np.float64]:
     """
     Long docstring here. Fold it by clicking on the little down arrow just between the
@@ -285,7 +285,7 @@ def train_binary(
         weights -= alpha * grad_weights  # shape (n, 1)
         intercept -= alpha * grad_intercept  # real
 
-        if epoch % 10_000 == 0:
+        if epoch % 1_000 == 0:
             loss = compute_loss(y_binary, prediction)
             formatted = ", ".join(f"{w:.6f}" for w in grad_weights)
             print(
@@ -366,7 +366,7 @@ def save_model(
 
 def main(train_file_path: str) -> None:
     X, y, feature_names = load_dataset(train_file_path)
-    X_train, X_val, y_train, y_val = train_test_split(X, y)
+    X_train, X_val, y_train, y_val = train_test_stratified_split(X, y)
     means, stds = get_all_subjects_means_stds(X_train)
     X_train = apply_standardization(X_train, means, stds)
     X_val = apply_standardization(X_val, means, stds)
@@ -375,7 +375,7 @@ def main(train_file_path: str) -> None:
     preds = predict_ovr(models, X_val)
     acc = accuracy(y_val, preds)
     print(f"\nAccuracy: {acc}")
-    print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
+    # print(f"skluracy: {accuracy_score(y_val, preds)}")  # sklearn accuracy comparison
 
 
 if __name__ == "__main__":

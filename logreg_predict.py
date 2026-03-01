@@ -1,19 +1,21 @@
-#!.venv/bin/python
+#!/usr/bin/env python3
 
 import csv
 import sys
 import json
-from typing import Tuple, Dict, List
+from typing import List
 
 import numpy as np
 import polars as pl
+import numpy.typing as npt
+
 
 from logreg_train import apply_standardization, predict_ovr
 
 
 def load_model(
     path: str,
-) -> Tuple[Dict[str, Dict[str, list]], np.ndarray, np.ndarray, List[str]]:
+) -> tuple[dict[str, tuple[npt.NDArray[np.float64], np.float64]], np.ndarray, np.ndarray, List[str]]:
     with open(path, "r") as f:
         data = json.load(f)
 
