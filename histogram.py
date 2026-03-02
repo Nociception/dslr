@@ -177,7 +177,7 @@ def plot_best_hand_histogram(df: pl.DataFrame) -> None:
         data=df_clean.to_pandas(),
         x="Hogwarts House",
         hue="Best Hand",
-        multiple="fill",      # normalize to proportions
+        multiple="fill",  # normalize to proportions
         shrink=0.8,
     )
 

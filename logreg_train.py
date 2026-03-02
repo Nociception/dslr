@@ -9,6 +9,7 @@ import numpy.typing as npt
 # from sklearn.metrics import accuracy_score
 
 from describe import ft_count, ft_arithmetic_mean, ft_std
+from logistic_functions import logistic_function_vector
 
 
 def load_dataset(path: str) -> tuple[npt.NDArray, npt.NDArray, list[str]]:
@@ -94,10 +95,6 @@ def apply_standardization(
 ) -> npt.NDArray:
 
     return (X - means) / stds
-
-
-def logistic_function(z: npt.NDArray) -> npt.NDArray:
-    return 1 / (1 + np.exp(-z))
 
 
 def compute_loss(
@@ -206,7 +203,7 @@ def train_binary(
         * g, the logistic/sigmoid function is also defined just below in the subject as such:
             1/(1+e^-z)
         Here in the code:
-            `prediction`: npt.NDArray[np.float64] = logistic_function(score)
+            `prediction`: npt.NDArray[np.float64] = logistic_function_vector(score)
 
 
     Current function code instructions, related to subject's formulas
@@ -233,7 +230,7 @@ def train_binary(
             (And not θ^T @ X, as it is written in the subject.)
             No need to transpose, just adapt the order, and it provides the proper result:
                 a (m, 1) shaped vector: one score per student.
-    *   prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m,)
+    *   prediction: npt.NDArray[np.float64] = logistic_function_vector(score)  # shape (m,)
         Related to z in the subject's formula.
         Once the logistic function is applied, score is shaped into a number between 0 and 1,
         as a probability/prediction should be.
@@ -275,7 +272,9 @@ def train_binary(
 
     for epoch in range(epochs):
         score: npt.NDArray[np.float64] = X @ weights + intercept  # shape (m, 1)
-        prediction: npt.NDArray[np.float64] = logistic_function(score)  # shape (m, 1)
+        prediction: npt.NDArray[np.float64] = logistic_function_vector(
+            score
+        )  # shape (m, 1)
         error: npt.NDArray[np.float64] = prediction - y_binary  # shape (m, 1)
         grad_weights: npt.NDArray[np.float64] = (
             X.T @ error
@@ -342,7 +341,7 @@ def save_model(
     model_data: dict = {
         "metadata": {
             "model": "logistic_regression_ovr",
-            "n_features": len(feature_names),
+            "nb_features": len(feature_names),
         },
         "features": feature_names,
         "standardization": {

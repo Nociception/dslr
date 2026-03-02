@@ -130,7 +130,7 @@ def ft_anova_f_scores(
 
 def describe(df: pl.DataFrame):
     df_dup = df
-    if ("Hogwarts House" not in df.columns):
+    if "Hogwarts House" not in df.columns:
         print("Error: We need the houses for the file... Use dataset of training...")
         exit(1)
     df = df.drop(

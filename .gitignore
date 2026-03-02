@@ -6,3 +6,5 @@ houses.csv
 pairplot.png
 
 model.json
+
+__pycache__/*
