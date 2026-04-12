@@ -1,0 +1,10 @@
+describe.csv
+houses.csv
+
+.~lock.*.csv*
+
+pairplot.png
+
+model.json
+
+__pycache__/*

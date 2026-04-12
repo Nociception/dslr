@@ -1,65 +1,181 @@
+#!.venv/bin/python
+
 import sys
+
 import numpy as np
 import polars as pl
+import numpy.typing as npt
 
-def ft_count(data):
-    return (len([x for x in data if not np.isnan(x)]))
 
-def ft_nan_count(data):
-    return (len([x for x in data if np.isnan(x)]))
+def ft_sum(arr: list[int | float]) -> float:
+    return sum(value for value in arr if not np.isnan(value))
 
-def ft_mean(data):
-    assert ft_count(data) > 0, "Can't calculate the mean of an empty list"
-    return (np.sum([x for x in data if not np.isnan(x)]) / ft_count(data))
 
-def ft_std(data):
-    assert ft_count(data) >= 2, "Can't calculate the std of an empty list or a list with only one element"
-    mean = ft_mean(data)
-    return (np.sqrt(np.sum([(x - mean) ** 2 for x in data if not np.isnan(x)]) / (ft_count(data) - 1)))
+def ft_count(data: np.ndarray) -> int:
+    return len([x for x in data if not np.isnan(x)])
 
-def ft_min(data):
+
+def ft_nan_count(data: np.ndarray) -> int:
+    return len([x for x in data if np.isnan(x)])
+
+
+def ft_arithmetic_mean(
+    data: np.ndarray,
+    col_count: int | None = None,
+) -> float:
+    assert col_count is not None, "ft_arithmetic_mean did not receive col_count arg."
+    assert col_count > 0, "Can't calculate the mean of an empty list"
+    return ft_sum([x for x in data]) / col_count
+
+
+def ft_std(
+    data: np.ndarray,
+    col_count: int = -1,
+    col_mean: float | None = None,
+) -> float:
+    assert col_count != -1, "ft_std did not receive col_count arg."
+    assert col_count is not None, "ft_std did not receive col_mean arg."
+    assert col_count >= 2, (
+        "Can't calculate the std of an empty list or a list with only one element."
+    )
+    return (ft_sum([(x - col_mean) ** 2 for x in data]) / (col_count)) ** 0.5
+
+
+def ft_min(data: np.ndarray) -> int | float:
     arr = [x for x in data if not np.isnan(x)]
     min = arr[0]
     for x in arr:
         if x < min:
             min = x
-    return (min)
+    return min
 
-def ft_max(data):
+
+def ft_max(data: np.ndarray) -> int | float:
     arr = [x for x in data if not np.isnan(x)]
     max = arr[0]
     for x in arr:
         if x > max:
             max = x
-    return (max)
+    return max
 
-def ft_percentile(data, p):
-    assert p >= 0 and p <= 1, "The percentile must be between 0 and 1"
+
+def ft_percentile(data: np.ndarray, p: float) -> int | float:
+    assert p >= 0 and p <= 1, "The percentile must be between 0 and 1."
     arr = [x for x in data if not np.isnan(x)]
     arr.sort()
-    return (arr[int(len(arr) * p)])
+    return arr[int(len(arr) * p)]
 
 
-def describe(df):
-    # count ; mean ; std ; min ; 25% ; 50% ; 75% ; max
+def write_csv(
+    output: dict, functions: list[str], columns: list[str], filename: str
+) -> None:
+    with open(filename, "w") as f:
+        f.write("," + ",".join(columns) + "\n")
 
-    df = df.drop(["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"])
-    functions = ["count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"]
+        for func in functions:
+            row = [func]
+            for col in columns:
+                row.append(f"{output[col][func]:.6f}")
+            f.write(",".join(row) + "\n")
+    print(
+        f"\n{filename} created ; browse it with a proper solution if your screen is not wide enough."
+    )
 
+
+def ft_anova_f_scores(
+    X: npt.NDArray[np.float64],  # shape (m, n)
+    y: npt.NDArray[np.str_],  # shape (m,)
+) -> npt.NDArray[np.float64]:
+    n = X.shape[1]
+    f_scores = np.zeros(n, dtype=np.float64)
+
+    for j in range(n):
+        mask_valid = ~np.isnan(X[:, j])
+        X_j = X[mask_valid, j]
+        y_j = y[mask_valid]
+
+        m_j = len(X_j)
+        classes = np.unique(y_j)
+        K = len(classes)
+
+        if m_j <= K:
+            f_scores[j] = np.nan
+            continue
+
+        global_mean = np.mean(X_j)
+        ss_between = 0.0
+        ss_within = 0.0
+
+        for c in classes:
+            class_mask = y_j == c
+            X_c = X_j[class_mask]
+            n_k = len(X_c)
+            if n_k == 0:
+                continue
+
+            mean_k = np.mean(X_c)
+            ss_between += n_k * (mean_k - global_mean) ** 2
+            ss_within += np.sum((X_c - mean_k) ** 2)
+
+        ms_between = ss_between / (K - 1)
+        ms_within = ss_within / (m_j - K)
+
+        if ms_within == 0:
+            f_scores[j] = 0.0
+        else:
+            f_scores[j] = ms_between / ms_within
+
+    return f_scores
+
+
+def describe(df: pl.DataFrame):
+    df_dup = df
+    if "Hogwarts House" not in df.columns:
+        print("Error: We need the houses for the file... Use dataset of training...")
+        exit(1)
+    df = df.drop(
+        ["Hogwarts House", "Index", "First Name", "Last Name", "Birthday", "Best Hand"]
+    )
+
+    functions = [
+        "count",
+        "null_count",
+        "mean",
+        "std",
+        "min",
+        "25%",
+        "50%",
+        "75%",
+        "max",
+        "anova_f_score",
+    ]
     try:
-        assert len(df) > 0, "The data is empty"
+        assert len(df) > 0, "The data is empty."
         output = {}
         for col in df.columns:
+            np_col = df[col].to_numpy()
+            col_count = ft_count(np_col)
+            col_mean = ft_arithmetic_mean(np_col, col_count=col_count)
             output[col] = {
-                "count": ft_count(df[col].to_numpy()),
-                "null_count": ft_nan_count(df[col].to_numpy()),
-                "mean": ft_mean(df[col].to_numpy()),
-                "std": ft_std(df[col].to_numpy()),
-                "min": ft_min(df[col].to_numpy()),
-                "25%": ft_percentile(df[col].to_numpy(), 0.25),
-                "50%": ft_percentile(df[col].to_numpy(), 0.50),
-                "75%": ft_percentile(df[col].to_numpy(), 0.75),
-                "max": ft_max(df[col].to_numpy()),
+                "count": col_count,
+                "null_count": ft_nan_count(np_col),
+                "mean": col_mean,
+                "std": ft_std(
+                    np_col,
+                    col_count=col_count,
+                    col_mean=col_mean,
+                ),
+                "min": ft_min(np_col),
+                "25%": ft_percentile(np_col, 0.25),
+                "50%": ft_percentile(np_col, 0.50),
+                "75%": ft_percentile(np_col, 0.75),
+                "max": ft_max(np_col),
+                "anova_f_score": ft_anova_f_scores(
+                    X=df_dup.select(pl.col(col)).to_numpy(),  # shape (m, 1)
+                    y=df_dup.select(pl.col("Hogwarts House"))
+                    .to_numpy()
+                    .flatten(),  # shape (m,)
+                )[0],
             }
     except AssertionError as e:
         print("Error: ", e)
@@ -75,17 +191,30 @@ def describe(df):
             print(f"{output[col][f]:<12.2f}", end="")
         print()
 
-def main():
-    if len(sys.argv) != 3:
-        print("Error: Wrong number of arguments")
+    write_csv(
+        output=output,
+        functions=functions,
+        columns=df.columns,
+        filename="describe.csv",
+    )
+
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        print("Need a dataset of training to analyze...")
+        print("Usage: ./describe.py datasets/dataset_train.csv")
         exit(1)
-    if sys.argv[2][-4] != ".csv":
+    if "test" in sys.argv[1]:
+        print("We need a dataset of training to analyze...")
+        print("Usage: ./describe.py datasets/dataset_train.csv")
+        exit(1)
+    csv_file = sys.argv[1]
+    if not csv_file.endswith(".csv"):
         print("Error: The file is not a csv file")
         exit(1)
-    csv_file = sys.argv[2]
 
-    df_train = pl.read_csv(csv_file)
-    describe(df_train)
+    describe(pl.read_csv(csv_file))
+
 
 if __name__ == "__main__":
     main()
